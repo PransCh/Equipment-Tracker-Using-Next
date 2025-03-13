@@ -9,6 +9,7 @@
     top: 10px;
     left: 10px;
     z-index: 1000; /* Ensure the button is above other elements */
+    margin-top: 5px;
 }
 
 .sidebar {

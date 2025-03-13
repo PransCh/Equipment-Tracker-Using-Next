@@ -243,6 +243,8 @@ function EquipmentDetails() {
     const [remarks, setRemarks] = useState('');
     const [createdBy, setCreatedBy] = useState('');
     const [existingMaintenance, setExistingMaintenance] = useState(null);
+    const [maintenanceHistory, setMaintenanceHistory] = useState([]);
+
 
 
     useEffect(() => {
@@ -281,6 +283,12 @@ function EquipmentDetails() {
 
         if (id) {
             fetchMaintenanceDetails();
+        }
+    }, [id]);
+
+    useEffect(() => {
+        if (id) {
+            fetchMaintenanceHistory();
         }
     }, [id]);
 
@@ -392,204 +400,267 @@ function EquipmentDetails() {
         }
     };
 
+    const handleCompleteMaintenance = async (maintenanceID) => {
+        try {
+            const response = await fetch('/api/auth/maintenanceStatus', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ maintenanceID }),
+            });
+
+            if (response.ok) {
+                // Fetch updated maintenance data
+                const fetchResponse = await fetch(`/api/auth/getMaintenanceByEquipment?equipmentID=${id}`);
+                const data = await fetchResponse.json();
+                if (data.length > 0) {
+                    setExistingMaintenance(data[0]);
+                } else {
+                    setExistingMaintenance(null);
+                }
+                setMaintenanceDialogOpen(false);
+            } else {
+                const errorData = await response.json();
+                console.error('Error completing maintenance:', errorData.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+
+    const fetchMaintenanceHistory = async () => {
+        try {
+            const response = await fetch(`/api/auth/getMaintenanceHistory?equipmentID=${id}`);
+            const data = await response.json();
+            setMaintenanceHistory(data);
+        } catch (error) {
+            console.error('Error fetching maintenance history:', error);
+        }
+    };
+
+    
+
     if (loading) {
         return <CircularProgress />;
     }
 
     return (
         <div>
-        <Header/>
-        <Box sx={{ padding: 2 }}>
-            <Typography variant="h4" component="h1" sx={{ marginBottom: 2 }}>
-                Equipment Details
-            </Typography>
-            {equipment && (
-                <Box sx={{ marginBottom: 2 }}>
-                    <Typography variant="body1"><strong>Name:</strong> {equipment.Name}</Typography>
-                    <Typography variant="body1"><strong>Model:</strong> {equipment.Model}</Typography>
-                    <Typography variant="body1"><strong>Serial Number:</strong> {equipment.SerialNumber}</Typography>
-                    <Typography variant="body1"><strong>Location:</strong> {equipment.Location}</Typography>
-                    <Typography variant="body1"><strong>Price:</strong> {equipment.Price}</Typography>
-                    <Typography variant="body1"><strong>Image URL:</strong> {equipment.ImageURL}</Typography>
-                    <Typography variant="body1"><strong>Purchase Date:</strong> {equipment.PurchaseDate}</Typography>
-                    <Typography variant="body1"><strong>Last Modified:</strong> {new Date(equipment.lastModified).toLocaleString()}</Typography>
-                    <Button variant="contained" color="primary" sx={{ marginRight: 1 }} onClick={handleEdit}>Edit</Button>
-                    <Button variant="contained" color="secondary" sx={{ marginRight: 1 }} onClick={handleDelete}>Delete</Button>
-                    <Button variant="contained" color="success" sx={{ marginRight: 1 }} onClick={() => setMaintenanceDialogOpen(true)}>Schedule Maintenance</Button>
-                    <Button variant="contained" color="info" onClick={handleViewHistory}>View History</Button>
-                </Box>
-            )}
+            <Header />
+            <Box sx={{ padding: 2 }}>
+                <Typography variant="h4" component="h1" sx={{ marginBottom: 2 }}>
+                    Equipment Details
+                </Typography>
+                {equipment && (
+                    <Box sx={{ marginBottom: 2 }}>
+                        <Typography variant="body1"><strong>Name:</strong> {equipment.Name}</Typography>
+                        <Typography variant="body1"><strong>Model:</strong> {equipment.Model}</Typography>
+                        <Typography variant="body1"><strong>Serial Number:</strong> {equipment.SerialNumber}</Typography>
+                        <Typography variant="body1"><strong>Location:</strong> {equipment.Location}</Typography>
+                        <Typography variant="body1"><strong>Price:</strong> {equipment.Price}</Typography>
+                        <Typography variant="body1"><strong>Image URL:</strong> {equipment.ImageURL}</Typography>
+                        <Typography variant="body1"><strong>Purchase Date:</strong> {equipment.PurchaseDate}</Typography>
+                        <Typography variant="body1"><strong>Last Modified:</strong> {new Date(equipment.lastModified).toLocaleString()}</Typography>
+                        <Button variant="contained" color="primary" sx={{ marginRight: 1 }} onClick={handleEdit}>Edit</Button>
+                        <Button variant="contained" color="secondary" sx={{ marginRight: 1 }} onClick={handleDelete}>Delete</Button>
+                        <Button variant="contained" color="success" sx={{ marginRight: 1 }} onClick={() => setMaintenanceDialogOpen(true)}>Schedule Maintenance</Button>
+                        <Button variant="contained" color="info" onClick={handleViewHistory}>View History</Button>
+                    </Box>
+                )}
 
-            <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
-                <DialogTitle>Edit Equipment</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        label="Name"
-                        value={equipment?.Name || ''}
-                        onChange={(e) => setEquipment({ ...equipment, Name: e.target.value })}
-                        fullWidth
-                        sx={{ marginBottom: 2 }}
-                    />
-                    <TextField
-                        label="Model"
-                        value={equipment?.Model || ''}
-                        onChange={(e) => setEquipment({ ...equipment, Model: e.target.value })}
-                        fullWidth
-                        sx={{ marginBottom: 2 }}
-                    />
-                    <TextField
-                        label="Serial Number"
-                        value={equipment?.SerialNumber || ''}
-                        onChange={(e) => setEquipment({ ...equipment, SerialNumber: e.target.value })}
-                        fullWidth
-                        sx={{ marginBottom: 2 }}
-                    />
-                    <TextField
-                        label="Location"
-                        value={equipment?.Location || ''}
-                        onChange={(e) => setEquipment({ ...equipment, Location: e.target.value })}
-                        fullWidth
-                        sx={{ marginBottom: 2 }}
-                    />
-                    <TextField
-                        label="Price"
-                        value={equipment?.Price || ''}
-                        onChange={(e) => setEquipment({ ...equipment, Price: e.target.value })}
-                        fullWidth
-                        sx={{ marginBottom: 2 }}
-                    />
-                    <TextField
-                        label="Image URL"
-                        value={equipment?.ImageURL || ''}
-                        onChange={(e) => setEquipment({ ...equipment, ImageURL: e.target.value })}
-                        fullWidth
-                        sx={{ marginBottom: 2 }}
-                    />
-                    <TextField
-                        label="Purchase Date"
-                        type="date"
-                        value={equipment?.PurchaseDate || ''}
-                        onChange={(e) => setEquipment({ ...equipment, PurchaseDate: e.target.value })}
-                        fullWidth
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ marginBottom: 2 }}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setEditDialogOpen(false)} color="secondary">
-                        Cancel
-                    </Button>
-                    <Button onClick={handleUpdate} color="primary">
-                        Update
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
+                    <DialogTitle>Edit Equipment</DialogTitle>
+                    <DialogContent>
+                        <TextField
+                            label="Name"
+                            value={equipment?.Name || ''}
+                            onChange={(e) => setEquipment({ ...equipment, Name: e.target.value })}
+                            fullWidth
+                            sx={{ marginBottom: 2 }}
+                        />
+                        <TextField
+                            label="Model"
+                            value={equipment?.Model || ''}
+                            onChange={(e) => setEquipment({ ...equipment, Model: e.target.value })}
+                            fullWidth
+                            sx={{ marginBottom: 2 }}
+                        />
+                        <TextField
+                            label="Serial Number"
+                            value={equipment?.SerialNumber || ''}
+                            onChange={(e) => setEquipment({ ...equipment, SerialNumber: e.target.value })}
+                            fullWidth
+                            sx={{ marginBottom: 2 }}
+                        />
+                        <TextField
+                            label="Location"
+                            value={equipment?.Location || ''}
+                            onChange={(e) => setEquipment({ ...equipment, Location: e.target.value })}
+                            fullWidth
+                            sx={{ marginBottom: 2 }}
+                        />
+                        <TextField
+                            label="Price"
+                            value={equipment?.Price || ''}
+                            onChange={(e) => setEquipment({ ...equipment, Price: e.target.value })}
+                            fullWidth
+                            sx={{ marginBottom: 2 }}
+                        />
+                        <TextField
+                            label="Image URL"
+                            value={equipment?.ImageURL || ''}
+                            onChange={(e) => setEquipment({ ...equipment, ImageURL: e.target.value })}
+                            fullWidth
+                            sx={{ marginBottom: 2 }}
+                        />
+                        <TextField
+                            label="Purchase Date"
+                            type="date"
+                            value={equipment?.PurchaseDate || ''}
+                            onChange={(e) => setEquipment({ ...equipment, PurchaseDate: e.target.value })}
+                            fullWidth
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ marginBottom: 2 }}
+                        />
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setEditDialogOpen(false)} color="secondary">
+                            Cancel
+                        </Button>
+                        <Button onClick={handleUpdate} color="primary">
+                            Update
+                        </Button>
+                    </DialogActions>
+                </Dialog>
 
-            {existingMaintenance ? (
-                <>
-                    <Button variant="contained" color="primary" onClick={() => setMaintenanceDialogOpen(true)}>
-                        View Maintenance Details
-                    </Button>
-                    <Button variant="contained" color="secondary" onClick={handleCancelMaintenance}>
-                        Cancel Maintenance
-                    </Button>
-                </>
-            ) : (
-                ""
-            )}
-            <Dialog open={maintenanceDialogOpen} onClose={() => setMaintenanceDialogOpen(false)}>
-                <DialogTitle>{existingMaintenance ? 'Maintenance Details' : 'Schedule Maintenance'}</DialogTitle>
-                <DialogContent>
-                    {existingMaintenance ? (
-                        <Box sx={{ padding: 2 }}>
-                            <Typography><strong>Maintenance Date:</strong> {existingMaintenance.maintenanceDate}</Typography>
-                            <Typography><strong>Maintenance Type:</strong> {existingMaintenance.maintenanceType}</Typography>
-                            <Typography><strong>Duration:</strong> {existingMaintenance.duration} minutes</Typography>
-                            <Typography><strong>Remarks:</strong> {existingMaintenance.remarks}</Typography>
-                            <Typography><strong>Created By:</strong> {existingMaintenance.createdBy}</Typography>
-                        </Box>
+                {existingMaintenance ? (
+                    <>
+                        <Button variant="contained" color="primary" onClick={() => setMaintenanceDialogOpen(true)}>
+                            View Maintenance Details
+                        </Button>
+                        <Button variant="contained" color="secondary" onClick={handleCancelMaintenance}>
+                            Cancel Maintenance
+                        </Button>
+
+                    </>
+                ) : (
+                    ""
+                )}
+                <Dialog open={maintenanceDialogOpen} onClose={() => setMaintenanceDialogOpen(false)}>
+                    <DialogTitle>{existingMaintenance ? 'Maintenance Details' : 'Schedule Maintenance'}</DialogTitle>
+                    <DialogContent>
+                        {existingMaintenance ? (
+                            <Box sx={{ padding: 2 }}>
+                                <Typography><strong>Maintenance Date:</strong> {existingMaintenance.maintenanceDate}</Typography>
+                                <Typography><strong>Maintenance Type:</strong> {existingMaintenance.maintenanceType}</Typography>
+                                <Typography><strong>Duration:</strong> {existingMaintenance.duration} minutes</Typography>
+                                <Typography><strong>Remarks:</strong> {existingMaintenance.remarks}</Typography>
+                                <Typography><strong>Created By:</strong> {existingMaintenance.createdBy}</Typography>
+                                <Button variant="contained" color="success" onClick={() => handleCompleteMaintenance(existingMaintenance.id)}>
+                                    Complete Maintenance
+                                </Button>
+                            </Box>
+                        ) : (
+                            <Box sx={{ padding: 2 }}>
+                                <Box sx={{ marginBottom: 2 }}>
+                                    <TextField
+                                        label="Maintenance Date"
+                                        type="date"
+                                        value={maintenanceDate}
+                                        onChange={(e) => setMaintenanceDate(e.target.value)}
+                                        fullWidth
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                </Box>
+                                <Box sx={{ marginBottom: 2 }}>
+                                    <TextField
+                                        label="Maintenance Type"
+                                        value={maintenanceType}
+                                        onChange={(e) => setMaintenanceType(e.target.value)}
+                                        fullWidth
+                                    />
+                                </Box>
+                                <Box sx={{ marginBottom: 2 }}>
+                                    <TextField
+                                        label="Duration (minutes)"
+                                        value={duration}
+                                        onChange={(e) => setDuration(e.target.value)}
+                                        fullWidth
+                                    />
+                                </Box>
+                                <Box sx={{ marginBottom: 2 }}>
+                                    <TextField
+                                        label="Remarks"
+                                        value={remarks}
+                                        onChange={(e) => setRemarks(e.target.value)}
+                                        fullWidth
+                                    />
+                                </Box>
+                                <Box sx={{ marginBottom: 2 }}>
+                                    <TextField
+                                        label="Created By"
+                                        value={createdBy}
+                                        onChange={(e) => setCreatedBy(e.target.value)}
+                                        fullWidth
+                                    />
+                                </Box>
+                                <Button variant="contained" color="primary" onClick={handleScheduleMaintenance}>
+                                    Schedule Maintenance
+                                </Button>
+                            </Box>
+                        )}
+                    </DialogContent>
+                </Dialog>
+                <div>
+                    <h2>Maintenance History</h2>
+                    {maintenanceHistory.length > 0 ? (
+                        <ul>
+                            {maintenanceHistory.map((history) => (
+                                <li key={history.id}>
+                                    <Typography><strong>Date:</strong> {history.maintenanceDate}</Typography>
+                                    <Typography><strong>Type:</strong> {history.maintenanceType}</Typography>
+                                    <Typography><strong>Duration:</strong> {history.duration} minutes</Typography>
+                                    <Typography><strong>Remarks:</strong> {history.remarks}</Typography>
+                                    <Typography><strong>Completed By:</strong> {history.createdBy}</Typography>
+                                    <Typography><strong>Completed Date:</strong> {history.completedDate}</Typography>
+                                </li>
+                            ))}
+                        </ul>
                     ) : (
-                        <Box sx={{ padding: 2 }}>
-                            <Box sx={{ marginBottom: 2 }}>
-                                <TextField
-                                    label="Maintenance Date"
-                                    type="date"
-                                    value={maintenanceDate}
-                                    onChange={(e) => setMaintenanceDate(e.target.value)}
-                                    fullWidth
-                                    InputLabelProps={{ shrink: true }}
-                                />
-                            </Box>
-                            <Box sx={{ marginBottom: 2 }}>
-                                <TextField
-                                    label="Maintenance Type"
-                                    value={maintenanceType}
-                                    onChange={(e) => setMaintenanceType(e.target.value)}
-                                    fullWidth
-                                />
-                            </Box>
-                            <Box sx={{ marginBottom: 2 }}>
-                                <TextField
-                                    label="Duration (minutes)"
-                                    value={duration}
-                                    onChange={(e) => setDuration(e.target.value)}
-                                    fullWidth
-                                />
-                            </Box>
-                            <Box sx={{ marginBottom: 2 }}>
-                                <TextField
-                                    label="Remarks"
-                                    value={remarks}
-                                    onChange={(e) => setRemarks(e.target.value)}
-                                    fullWidth
-                                />
-                            </Box>
-                            <Box sx={{ marginBottom: 2 }}>
-                                <TextField
-                                    label="Created By"
-                                    value={createdBy}
-                                    onChange={(e) => setCreatedBy(e.target.value)}
-                                    fullWidth
-                                />
-                            </Box>
-                            <Button variant="contained" color="primary" onClick={handleScheduleMaintenance}>
-                                Schedule Maintenance
-                            </Button>
-                        </Box>
+                        <Typography>No maintenance history available.</Typography>
                     )}
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={historyDialogOpen} onClose={() => setHistoryDialogOpen(false)} maxWidth="md" fullWidth>
-                <DialogTitle>Update History</DialogTitle>
-                <DialogContent>
-                    {updateHistory.map((history, index) => (
-                        <Box key={index} sx={{ marginBottom: 2, padding: 2, border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-                            <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#333' }}>
-                                Date: {new Date(history.UpdateDate).toLocaleString()}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#555' }}>
-                                Updated Fields:
-                            </Typography>
-                            <Box sx={{ marginLeft: 2 }}>
-                                {Object.entries(JSON.parse(history.UpdatedFields)).map(([key, value]) => (
-                                    value !== null && value !== '' && (
-                                        <Typography key={key} variant="body2" sx={{ color: '#555' }}>
-                                            <strong>{key}:</strong> {value}
-                                        </Typography>
-                                    )
-                                ))}
+                </div>
+                <Dialog open={historyDialogOpen} onClose={() => setHistoryDialogOpen(false)} maxWidth="md" fullWidth>
+                    <DialogTitle>Update History</DialogTitle>
+                    <DialogContent>
+                        {updateHistory.map((history, index) => (
+                            <Box key={index} sx={{ marginBottom: 2, padding: 2, border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+                                <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#333' }}>
+                                    Date: {new Date(history.UpdateDate).toLocaleString()}
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: '#555' }}>
+                                    Updated Fields:
+                                </Typography>
+                                <Box sx={{ marginLeft: 2 }}>
+                                    {Object.entries(JSON.parse(history.UpdatedFields)).map(([key, value]) => (
+                                        value !== null && value !== '' && (
+                                            <Typography key={key} variant="body2" sx={{ color: '#555' }}>
+                                                <strong>{key}:</strong> {value}
+                                            </Typography>
+                                        )
+                                    ))}
+                                </Box>
                             </Box>
-                        </Box>
-                    ))}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setHistoryDialogOpen(false)} variant="contained" color="primary">
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </Box>
+                        ))}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setHistoryDialogOpen(false)} variant="contained" color="primary">
+                            Close
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            </Box>
         </div>
     );
 }
