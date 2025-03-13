@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Header.css'; // Assuming you have a separate CSS file for styling
 
-const Header = () => {
+const Header = ({ onSearch }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const handleSearchChange = (event) => {
+        setSearchTerm(event.target.value);
+        onSearch(event.target.value);
+    };
+
     const logout = () => {
         // Clear the authentication token (example)
         localStorage.removeItem('token');
@@ -21,6 +28,13 @@ const Header = () => {
             </div>
             <div className="middle">
                 <button onClick={goHome}>Home</button>
+                <input
+                    type="text"
+                    placeholder="Search equipment..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="search-bar"
+                />
             </div>
             <div className="right">
                 <button onClick={logout}>Log Out</button>

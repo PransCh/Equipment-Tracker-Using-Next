@@ -8,21 +8,21 @@ import EquipmentList from '@/app/components/EquipmentList';
 import Sidebar from '@/app/components/Sidebar';
 
 function RegisterPage() {
-  const [showCalendar, setShowCalendar] = useState(false);
-    const equipmentID = 1; // Replace with actual equipment ID
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const handleViewCalendar = () => {
-        setShowCalendar(true);
+    const handleSearch = (term) => {
+        setSearchTerm(term);
     };
-  return (
-    <div>
-      <Header/>
-      <Sidebar/>
-      <Dashboard />
-      <EquipmentList/>
-      <Footer/>
-    </div>
-  );
+
+    return (
+        <div>
+            <Header onSearch={handleSearch} />
+            <Sidebar />
+            <Dashboard />
+            <EquipmentList searchTerm={searchTerm} />
+            <Footer />
+        </div>
+    );
 }
 
 export default withAuth(RegisterPage);

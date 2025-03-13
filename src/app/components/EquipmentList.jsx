@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardMedia, CircularProgress, Grid, Box, Typography, Button } from '@mui/material';
 import { useRouter } from 'next/navigation';
 
-function EquipmentList() {
+function EquipmentList({ searchTerm }) {
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -29,10 +29,14 @@ function EquipmentList() {
     return <CircularProgress />;
   }
 
+  const filteredEquipment = equipment.filter(item =>
+    item.Name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Box sx={{ padding: 2 }}>
       <Grid container spacing={2}>
-        {equipment.map((item) => (
+        {filteredEquipment.map((item) => (
           <Grid item xs={12} sm={6} md={3} key={item.EquipmentID}>
             <Card
               sx={{
