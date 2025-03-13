@@ -18,8 +18,9 @@ export default function LoginForm() {
       });
       const data = await response.json();
       if (data.success) {
-        // Store the token in localStorage or cookies
+        // Store the token and role in localStorage or sessionStorage
         localStorage.setItem('token', data.token);
+        localStorage.setItem('userRole', data.role);
         // Redirect to the dashboard
         router.push('/Home');
       } else {

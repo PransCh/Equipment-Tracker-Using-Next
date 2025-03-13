@@ -244,8 +244,16 @@ function EquipmentDetails() {
     const [createdBy, setCreatedBy] = useState('');
     const [existingMaintenance, setExistingMaintenance] = useState(null);
     const [maintenanceHistory, setMaintenanceHistory] = useState([]);
+    const [userRole, setUserRole] = useState('');
+    const [logDialogOpen, setLogDialogOpen] = useState(false);
+    const [logText, setLogText] = useState('');
 
-
+    useEffect(() => {
+        // Fetch user role from session storage
+        const role = localStorage.getItem('userRole');
+        console.log('Fetched user role:', role);
+        setUserRole(role);
+    }, []);
 
     useEffect(() => {
         if (id) {
@@ -333,39 +341,49 @@ function EquipmentDetails() {
     };
 
     const handleScheduleMaintenance = async () => {
-        try {
-            const response = await fetch('/api/auth/scheduleMaintenance', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    equipmentID: id,
-                    maintenanceDate,
-                    maintenanceType,
-                    duration,
-                    remarks,
-                    createdBy
-                }),
-            });
-
-            if (response.ok) {
-                const fetchResponse = await fetch(`/api/auth/getMaintenanceByEquipment?equipmentID=${id}`);
-                const data = await fetchResponse.json();
-                if (data.length > 0) {
-                    setExistingMaintenance(data[0]);
-                } else {
-                    setExistingMaintenance(null);
-                }
-                setMaintenanceDialogOpen(false);
-            } else {
-                const errorData = await response.json();
-                console.error('Error scheduling maintenance:', errorData.message);
-            }
-        } catch (error) {
-            console.error('Error:', error);
+        const selectedDate = new Date(maintenanceDate);
+        const currentDate = new Date();
+      
+        // Check if the selected maintenance date is in the future
+        if (selectedDate <= currentDate) {
+          console.error('Maintenance date must be in the future');
+          alert('Maintenance date must be in the future');
+          return;
         }
-    };
+      
+        try {
+          const response = await fetch('/api/auth/scheduleMaintenance', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              equipmentID: id,
+              maintenanceDate,
+              maintenanceType,
+              duration,
+              remarks,
+              createdBy
+            }),
+          });
+      
+          if (response.ok) {
+            const fetchResponse = await fetch(`/api/auth/getMaintenanceByEquipment?equipmentID=${id}`);
+            const data = await fetchResponse.json();
+            if (data.length > 0) {
+              setExistingMaintenance(data[0]);
+            } else {
+              setExistingMaintenance(null);
+            }
+            setMaintenanceDialogOpen(false);
+          } else {
+            const errorData = await response.json();
+            console.error('Error scheduling maintenance:', errorData.message);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      };
 
     const handleCancelMaintenance = async () => {
         try {
@@ -439,7 +457,66 @@ function EquipmentDetails() {
         }
     };
 
-    
+    const handleAddLog = async () => {
+        const logData = {
+            equipmentID: existingMaintenance.equipmentID,
+            maintenanceID: existingMaintenance.id,
+            logText: logText,
+            createdBy: userRole,
+        };
+
+        try {
+            const response = await fetch('/api/auth/addLogs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(logData),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log(result.message);
+        } catch (error) {
+            console.error('Error adding log:', error);
+        }
+    };
+
+    const fetchLogs = async (maintenanceID) => {
+        try {
+            const response = await fetch(`/api/auth/getLogs?maintenanceID=${maintenanceID}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error: ${response.statusText}`);
+            }
+
+            const logs = await response.json();
+            console.log(logs);
+            return logs;
+        } catch (error) {
+            console.error('Error fetching logs:', error);
+            return [];
+        }
+    };
+
+    const [logs, setLogs] = useState([]);
+
+    useEffect(() => {
+        if (existingMaintenance) {
+            fetchLogs(existingMaintenance.id).then(fetchedLogs => {
+                setLogs(fetchedLogs);
+            });
+        }
+    }, [existingMaintenance]);
+
 
     if (loading) {
         return <CircularProgress />;
@@ -542,10 +619,14 @@ function EquipmentDetails() {
                         <Button variant="contained" color="secondary" onClick={handleCancelMaintenance}>
                             Cancel Maintenance
                         </Button>
-
                     </>
                 ) : (
                     ""
+                )}
+                {userRole && userRole.toLowerCase() === 'technician' && existingMaintenance && (
+                    <Button variant="contained" color="primary" onClick={() => setLogDialogOpen(true)}>
+                        Add Logs
+                    </Button>
                 )}
                 <Dialog open={maintenanceDialogOpen} onClose={() => setMaintenanceDialogOpen(false)}>
                     <DialogTitle>{existingMaintenance ? 'Maintenance Details' : 'Schedule Maintenance'}</DialogTitle>
@@ -557,6 +638,18 @@ function EquipmentDetails() {
                                 <Typography><strong>Duration:</strong> {existingMaintenance.duration} minutes</Typography>
                                 <Typography><strong>Remarks:</strong> {existingMaintenance.remarks}</Typography>
                                 <Typography><strong>Created By:</strong> {existingMaintenance.createdBy}</Typography>
+                                {userRole && userRole.toLowerCase() === 'admin' && (
+                                    <>
+                                        <Typography><strong>Logs:</strong></Typography>
+                                        {Array.isArray(logs) && logs.length > 0 ? (
+                                            logs.map((log, index) => (
+                                                <Typography key={index}>{log.logText}</Typography>
+                                            ))
+                                        ) : (
+                                            <Typography>No logs available</Typography>
+                                        )}
+                                    </>
+                                )}
                                 <Button variant="contained" color="success" onClick={() => handleCompleteMaintenance(existingMaintenance.id)}>
                                     Complete Maintenance
                                 </Button>
@@ -610,6 +703,24 @@ function EquipmentDetails() {
                                 </Button>
                             </Box>
                         )}
+                    </DialogContent>
+                </Dialog>
+                <Dialog open={logDialogOpen} onClose={() => setLogDialogOpen(false)}>
+                    <DialogTitle>Add Log</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ padding: 2 }}>
+                            <TextField
+                                label="Log Text"
+                                value={logText}
+                                onChange={(e) => setLogText(e.target.value)}
+                                fullWidth
+                                multiline
+                                rows={4}
+                            />
+                            <Button variant="contained" color="primary" onClick={handleAddLog}>
+                                Submit Log
+                            </Button>
+                        </Box>
                     </DialogContent>
                 </Dialog>
                 <div>

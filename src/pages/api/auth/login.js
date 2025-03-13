@@ -34,10 +34,10 @@ export default async function handler(req, res) {
       }
 
       // Generate JWT
-      const token = jwt.sign({ id: user.id, email: user.email }, 'prans', { expiresIn: '1h' });
+      const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, 'prans', { expiresIn: '1h' });
 
       // Handle successful login
-      return res.status(200).json({ success: true, token });
+      return res.status(200).json({ success: true, token, role: user.role });
     } catch (error) {
       console.error('Error during login:', error);
       return res.status(500).json({ error: 'An error occurred during login' });

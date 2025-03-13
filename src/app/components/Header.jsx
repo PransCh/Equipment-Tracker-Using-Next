@@ -12,6 +12,7 @@ const Header = ({ onSearch }) => {
     const logout = () => {
         // Clear the authentication token (example)
         localStorage.removeItem('token');
+        localStorage.removeItem('userRole')
         
         // Redirect to the login page
         window.location.href = '/';
